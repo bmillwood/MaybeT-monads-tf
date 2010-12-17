@@ -1,10 +1,10 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, UndecidableInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {- |
 Copyright    : 2007 Eric Kidd
 License      : BSD3
 Stability    : experimental
-Portability  : non-portable (multi-parameter type classes, undecidable instances)
+Portability  : non-portable (type families)
 
 The 'MaybeT' monad.  See
 <http://www.haskell.org/haskellwiki/New_monads/MaybeT> for more widely-used
@@ -79,22 +79,22 @@ instance (MonadFix m) => MonadFix (MaybeT m) where
 
 -- MonadList: Not implemented.
 
--- MonadPlus: Ambiguous.  See note in introduction.
-
--- Requires -fallow-undecidable-instances.
-instance (MonadReader r m) => MonadReader r (MaybeT m) where
+instance (MonadReader m) => MonadReader (MaybeT m) where
+  type EnvType (MaybeT m) = EnvType m
   ask = lift ask
   local f m = MaybeT (local f (runMaybeT m))
 
 -- MonadRWS: Not implemented.
 
 -- Taken from http://www.haskell.org/haskellwiki/New_monads/MaybeT .
-instance MonadState s m => MonadState s (MaybeT m) where
+-- altered for the type family version
+instance MonadState m => MonadState (MaybeT m) where
+  type StateType (MaybeT m) = StateType m
   get = lift get
   put = lift . put
 
--- Requires -fallow-undecidable-instances.
-instance (MonadWriter w m) => MonadWriter w (MaybeT m) where
+instance (MonadWriter m) => MonadWriter (MaybeT m) where
+  type WriterType (MaybeT m) = WriterType m
   tell = lift . tell
   listen m = MaybeT (listen (runMaybeT m) >>= (return . liftMaybe))
     where liftMaybe (Nothing, _) = Nothing
@@ -102,21 +102,6 @@ instance (MonadWriter w m) => MonadWriter w (MaybeT m) where
   -- I'm not sure this is useful, but it's the best I can do:
   pass m = MaybeT (runMaybeT m >>= maybe (return Nothing)
                                          (liftM Just . pass . return))
-
-{- $Limitations
-
-The instance @MonadPlus@ is not provided, because it has ambiguous
-semantics.  It could refer to either
-
->instance MonadPlus m => MonadPlus (MaybeT m)
-
-...lifting the semantics of an underlying 'MaybeT' monad, or
-
->instance MonadPlus (MaybeT m)
-
-...with semantics similar to @MonadPlus Maybe@.
-
--}
 
 {- $MaybeExample
 
