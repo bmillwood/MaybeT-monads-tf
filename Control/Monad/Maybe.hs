@@ -31,6 +31,7 @@ module Control.Monad.Maybe (
   -- $MaybeExample
   ) where
 
+import Control.Applicative
 import Control.Monad()
 import Control.Monad.Trans()
 import Control.Monad.Cont
@@ -44,6 +45,10 @@ newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
 
 instance (Functor m) => Functor (MaybeT m) where
   fmap f = MaybeT . fmap (fmap f) . runMaybeT
+
+instance Applicative m => Applicative (MaybeT m) where
+  pure = MaybeT . pure . Just
+  MaybeT f <*> MaybeT x = MaybeT $ liftA2 (<*>) f x
 
 instance (Monad m) => Monad (MaybeT m) where
   fail _ = MaybeT (return Nothing)
