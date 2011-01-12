@@ -24,8 +24,6 @@ information is returned.  (If error information is required, see
 
 module Control.Monad.Maybe (
   MaybeT(..)
-  -- * Limitations
-  -- $Limitations
 
   -- * Example
   -- $MaybeExample
