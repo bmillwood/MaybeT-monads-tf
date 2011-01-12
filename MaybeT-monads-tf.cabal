@@ -1,7 +1,7 @@
 Cabal-Version: >= 1.6
 
 Name:     MaybeT-monads-tf
-Version:  0.1
+Version:  0.2
 Category: Control
 Synopsis: MaybeT monad transformer compatible with monads-tf instead of mtl
 
