@@ -29,82 +29,20 @@ module Control.Monad.Maybe (
   -- $MaybeExample
   ) where
 
-import Control.Applicative
-import Control.Monad()
 import Control.Monad.Trans()
-import Control.Monad.Cont
-import Control.Monad.Fix()
-import Control.Monad.Reader
-import Control.Monad.State
-import Control.Monad.Writer
-
--- | A monad transformer which adds Maybe semantics to an existing monad.
-newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
-
-instance (Functor m) => Functor (MaybeT m) where
-  fmap f = MaybeT . fmap (fmap f) . runMaybeT
-
-instance Applicative m => Applicative (MaybeT m) where
-  pure = MaybeT . pure . Just
-  MaybeT f <*> MaybeT x = MaybeT $ liftA2 (<*>) f x
-
-instance (Monad m) => Monad (MaybeT m) where
-  fail _ = MaybeT (return Nothing)
-  return = lift . return
-  x >>= f = MaybeT (runMaybeT x >>= maybe (return Nothing) (runMaybeT . f))
-
-instance (Monad m) => MonadPlus (MaybeT m) where
-  mzero = MaybeT (return Nothing)
-  mplus x y = MaybeT $ do v <- runMaybeT x
-                          case v of
-                            Nothing -> runMaybeT y
-                            Just _  -> return v
-
-
-instance MonadTrans MaybeT where
-  lift x = MaybeT (liftM Just x)
-
-instance (MonadCont m) => MonadCont (MaybeT m) where
-  -- Again, I hope this is correct.
-  callCC f = MaybeT (callCC (\c -> runMaybeT (f (wrap c))))
-    where wrap :: (Maybe a -> m (Maybe b)) -> a -> MaybeT m b
-          wrap c = MaybeT . c . Just
-
--- MonadError: MonadError has fairly weird semantics when lifted by MaybeT,
--- so let's skip it for now.
-
-instance (MonadIO m) => MonadIO (MaybeT m) where
-  liftIO = lift . liftIO
+import Control.Monad.Trans.Maybe
+import Control.Monad.Fix
 
 instance (MonadFix m) => MonadFix (MaybeT m) where
-  -- I hope this is correct.  At a minimum, it typechecks.
-  mfix f = MaybeT (mfix (maybe (return Nothing) (runMaybeT . f)))
-
--- MonadList: Not implemented.
-
-instance (MonadReader m) => MonadReader (MaybeT m) where
-  type EnvType (MaybeT m) = EnvType m
-  ask = lift ask
-  local f m = MaybeT (local f (runMaybeT m))
-
--- MonadRWS: Not implemented.
-
--- Taken from http://www.haskell.org/haskellwiki/New_monads/MaybeT .
--- altered for the type family version
-instance MonadState m => MonadState (MaybeT m) where
-  type StateType (MaybeT m) = StateType m
-  get = lift get
-  put = lift . put
-
-instance (MonadWriter m) => MonadWriter (MaybeT m) where
-  type WriterType (MaybeT m) = WriterType m
-  tell = lift . tell
-  listen m = MaybeT (listen (runMaybeT m) >>= (return . liftMaybe))
-    where liftMaybe (Nothing, _) = Nothing
-          liftMaybe (Just x,  w) = Just (x,w)
-  -- I'm not sure this is useful, but it's the best I can do:
-  pass m = MaybeT (runMaybeT m >>= maybe (return Nothing)
-                                         (liftM Just . pass . return))
+  -- Ref: http://www.haskell.org/pipermail/libraries/2011-April/016202.html
+  mfix f = MaybeT (mfix (runMaybeT . f . unJust))
+   where
+    unJust (Just x) = x
+    -- if f is strict then mfix produces bottom, so f must produce a
+    -- constructor without inspecting its argument. if that's Nothing, f
+    -- cannot inspect its argument at all; if it's Just, then the call to
+    -- unJust is safe.
+    unJust Nothing = error "MaybeT mfix: Nothing! (this should be impossible)"
 
 {- $MaybeExample
 

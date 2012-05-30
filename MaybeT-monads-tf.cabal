@@ -1,14 +1,19 @@
 Cabal-Version: >= 1.6
 
 Name:     MaybeT-monads-tf
-Version:  0.2
+Version:  0.2.0.1
 Category: Control
-Synopsis: MaybeT monad transformer compatible with monads-tf instead of mtl
+Synopsis: MaybeT monad transformer compatible with monads-tf (deprecated)
 
 Description:
     Support for computations with failures. This is a fork of the MaybeT
     package by Eric Kidd, but compatible with the type-family based monad
     classes of the monads-tf package.
+    .
+    This package is deprecated: the MaybeT transformer exists in the
+    transformers package nowadays, and the only advantage this package
+    provides over that one is the presence of a MonadFix instance, but
+    it's incorrect anyway.
 
 Author:       Ben Millwood <haskell@benmachine.co.uk>
 Maintainer:   Ben Millwood <haskell@benmachine.co.uk>
